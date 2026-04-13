@@ -37,6 +37,7 @@ architecture Behavioral of project_reti_logiche is
         INSERT_TASK_GET,
         UPDATE_RAM,
         CLEAR_RAM,
+        WAIT_MEM,
         WAIT_START_LOW
     );    
 
@@ -47,8 +48,8 @@ architecture Behavioral of project_reti_logiche is
     signal popped_task_id: std_logic_vector(5 downto 0);
     signal n_op: std_logic_vector(1 downto 0);
     signal idx_reg: unsigned(7 downto 0);
-    signal saved_priority: std_logic_vector(1 downto 0);
-    signal saved_id_task: std_logic_vector(5 downto 0);
+    signal n_task_id_next       : std_logic_vector(5 downto 0);
+    signal n_task_priority_next : std_logic_vector(1 downto 0);
 
 
     begin
@@ -65,13 +66,15 @@ architecture Behavioral of project_reti_logiche is
                 n_op <= (others => '0');
                 idx_reg <= (others => '0');
                 popped_task_id <= (others => '0');
-                saved_priority <= (others => '0');
-                
             elsif rising_edge(i_clk) then
                 state_reg <= state_next;
 
                 if state_reg=DECODE_OP then
                     n_reg <= unsigned(i_mem_data);
+                    if(n_op = "10") then 
+                        idx_reg <= to_unsigned(1, idx_reg'length);
+                    end if;
+                    
 
                 elsif state_reg=IDLE and i_start='1' then
                     n_op <= i_op;
@@ -80,8 +83,12 @@ architecture Behavioral of project_reti_logiche is
                     popped_task_id <= (others => '0');
                     idx_reg <= (others => '0');
 
+                elsif state_reg = INSERT_TASK_GET then
+                    n_task_id       <= n_task_id_next;
+                    n_task_priority <= n_task_priority_next;
+
                 elsif state_reg=DECREMENT_PR and idx_reg<n_reg then
-                    idx_reg <= idx_reg + 1;
+                    idx_reg <= idx_reg + to_unsigned(1, idx_reg'length);
 
                 elsif state_reg=REMOVE_FIRST then
                     idx_reg <= to_unsigned(2, idx_reg'length);
@@ -90,13 +97,10 @@ architecture Behavioral of project_reti_logiche is
                     popped_task_id <= i_mem_data(7 downto 2);
 
                 elsif state_reg=REMOVE_FIRST_LOOP and idx_reg<=n_reg then
-                    idx_reg <= idx_reg + 1;
-
-                elsif state_reg = DECODE_OP and n_op = "10" then
-                    idx_reg <= 1;
+                    idx_reg <= idx_reg + to_unsigned(1, idx_reg'length);
                 
                 elsif state_reg=INSERT_TASK and idx_reg<=n_reg then
-                    idx_reg <= idx_reg + 1;
+                    idx_reg <= idx_reg + to_unsigned(1, idx_reg'length);
 
                 end if;
             end if;
@@ -116,6 +120,8 @@ architecture Behavioral of project_reti_logiche is
             o_mem_we <= '0';
             o_mem_data <= (others => '0');
             o_mem_addr <= (others => '0');
+            n_task_id_next       <= n_task_id;
+            n_task_priority_next <= n_task_priority;
             
 
             state_next <= state_reg;
@@ -154,7 +160,7 @@ architecture Behavioral of project_reti_logiche is
                         state_next <= INSERT_TASK;
 
                     elsif(n_op = "11") then
-                        state_next <= RESET_MEM;
+                        state_next <= CLEAR_RAM;
 
                     end if;
 
@@ -162,7 +168,7 @@ architecture Behavioral of project_reti_logiche is
                 --DECREMENT_PR
                     
                 when DECREMENT_PR =>
-                    if(n_reg = 0 or idx_reg>=n_reg) then
+                    if (n_reg = to_unsigned(0, n_reg'length)) or (idx_reg >= n_reg) then
                         state_next <= WAIT_START_LOW;
                     else
                         state_next <= DECREMENT_PR_REQ;
@@ -177,7 +183,7 @@ architecture Behavioral of project_reti_logiche is
                     o_mem_en <= '1';
                     o_mem_we <= '1';
                     if i_mem_data(1 downto 0) /= "11" then
-                        o_mem_data <= i_mem_data(7 downto 2) & std_logic_vector(unsigned(i_mem_data(1 downto 0)) + 1);
+                        o_mem_data <= i_mem_data(7 downto 2) & std_logic_vector(unsigned(i_mem_data(1 downto 0)) + to_unsigned(1, 2));
                     else
                         o_mem_data <= i_mem_data(7 downto 2) & "11";
                     end if;
@@ -188,7 +194,7 @@ architecture Behavioral of project_reti_logiche is
                 --REMOVE_FIRST
 
                 when REMOVE_FIRST =>
-                    if(n_reg = 0) then
+                    if(n_reg = to_unsigned(0, n_reg'length)) then
                         o_done <= '1';  --Fattibile in uno stato solo uguale per tutti
                         o_task_id <= (others => '0');
                         state_next <= WAIT_START_LOW;
@@ -200,14 +206,14 @@ architecture Behavioral of project_reti_logiche is
 
                 when REMOVE_FIRST_WRITE =>
                     o_mem_en <= '1';
-                    if(n_reg = 1) then
-                        state_next <= RESET_MEM;
+                    if(n_reg = to_unsigned(1, n_reg'length)) then
+                        state_next <= CLEAR_RAM;
                     elsif(idx_reg>n_reg) then
                         o_mem_en <= '1';
                         o_mem_we <= '1';
                         o_mem_addr <= (others => '0');
-                        o_mem_data <= std_logic_vector(unsigned(n_reg) - 1);
-                        state_next <= WAIT_START_LOW; --Potrebbe essere da cambiare se non funziona così
+                        o_mem_data <= std_logic_vector(n_reg - to_unsigned(1, n_reg'length));
+                        state_next <= WAIT_MEM;
                     else
                         o_mem_en <= '1';
                         o_mem_addr <= std_logic_vector(resize(idx_reg, 16));
@@ -217,14 +223,14 @@ architecture Behavioral of project_reti_logiche is
                 when REMOVE_FIRST_LOOP =>
                     o_mem_en <= '1';
                     o_mem_we <= '1';
-                    o_mem_addr <= std_logic_vector(resize(idx_reg-1, 16));
+                    o_mem_addr <= std_logic_vector(resize(idx_reg - to_unsigned(1, idx_reg'length), 16));
                     o_mem_data <= i_mem_data;
                     state_next <= REMOVE_FIRST_WRITE;
 
                 --INSERT_TASK
 
                 when INSERT_TASK =>
-                    if(n_reg = 0) then
+                    if(n_reg = to_unsigned(0, n_reg'length)) then
                         o_mem_en <= '1';
                         o_mem_we <= '1';
                         o_mem_addr <= "0000000000000001";
@@ -238,21 +244,21 @@ architecture Behavioral of project_reti_logiche is
 
                 when INSERT_TASK_GET =>
                     o_mem_en <= '1';
-                    if(i_mem_data(1 downto 0) <= n_task_priority and idx_reg < n_reg) then
+                    if (unsigned(i_mem_data(1 downto 0)) <= unsigned(n_task_priority)) and (idx_reg < n_reg) then
                         state_next <= INSERT_TASK;
 
-                    elsif(i_mem_data(1 downto 0)>n_task_priority) then
+                    elsif(unsigned(i_mem_data(1 downto 0)) > unsigned(n_task_priority)) then
                         o_mem_we <= '1';
                         o_mem_addr <= std_logic_vector(resize(idx_reg, 16));
                         o_mem_data <= n_task_id & n_task_priority;
-                        n_task_id <= i_mem_data(7 downto 2);
-                        n_task_priority <= i_mem_data(1 downto 0);
+                        n_task_id_next       <= i_mem_data(7 downto 2);
+                        n_task_priority_next <= i_mem_data(1 downto 0);
                         state_next <= INSERT_TASK;
                         
                     elsif(idx_reg = n_reg) then
                         o_mem_en <= '1';
                         o_mem_we <= '1';
-                        o_mem_addr <= std_logic_vector(resize(idx_reg+1, 16));
+                        o_mem_addr <= std_logic_vector(resize(idx_reg + to_unsigned(1, idx_reg'length), 16));
                         o_mem_data <= n_task_id & n_task_priority;
                         state_next <= UPDATE_RAM;
                     end if;
@@ -261,7 +267,19 @@ architecture Behavioral of project_reti_logiche is
                     o_mem_en <= '1';
                     o_mem_we <= '1';
                     o_mem_addr <= (others => '0');
-                    o_mem_data <= std_logic_vector(unsigned(n_reg) + 1);
+                    o_mem_data <= std_logic_vector(n_reg + to_unsigned(1, n_reg'length));
+                    state_next <= WAIT_MEM;
+
+                when CLEAR_RAM =>
+                    o_mem_en <= '1';
+                    o_mem_we <= '1';
+                    o_mem_addr <= (others => '0');
+                    o_mem_data <= (others => '0');
+                    state_next <= WAIT_MEM;
+
+                when WAIT_MEM =>
+                    o_mem_en <= '0';
+                    o_mem_we <= '0';
                     state_next <= WAIT_START_LOW;
 
                 when WAIT_START_LOW =>
@@ -274,27 +292,6 @@ architecture Behavioral of project_reti_logiche is
                     if i_start = '0' then
                         state_next <= IDLE;
                     end if;
-                        
-                    
-                    
-
-                    
-                        
-
-    
-
-                    
-            
-
-
-
-            
-            
-        
-
-
-
-
-
-
+            end case;
+        end process;
 end architecture Behavioral;
