@@ -1,0 +1,4 @@
+v 4
+file . "RetiLogiche.vhd" "8850d0ec32ec70d9af904251b1ec3e9491802da5" "20260413135431.993":
+  entity project_reti_logiche at 1( 0) + 0 on 13;
+  architecture behavioral of project_reti_logiche at 23( 716) + 0 on 14;

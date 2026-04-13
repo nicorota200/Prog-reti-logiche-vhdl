@@ -1,0 +1,1 @@
+-debug "typical" "project_tb" -s "project_tb_sim" 

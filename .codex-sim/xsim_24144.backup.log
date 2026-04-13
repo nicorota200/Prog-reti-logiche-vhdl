@@ -1,0 +1,39 @@
+#-----------------------------------------------------------
+# xsim v2016.1 (64-bit)
+# SW Build 1538259 on Fri Apr  8 15:45:27 MDT 2016
+# IP Build 1537824 on Fri Apr  8 04:28:57 MDT 2016
+# Start of session at: Mon Apr 13 16:11:09 2026
+# Process ID: 24144
+# Current directory: C:/Users/Nico/Documents/Prog-reti-logiche-vhdl/.codex-sim
+# Command line: xsim.exe -mode tcl -source {xsim.dir/project_tb_sim/xsim_script.tcl}
+# Log file: C:/Users/Nico/Documents/Prog-reti-logiche-vhdl/.codex-sim/xsim.log
+# Journal file: C:/Users/Nico/Documents/Prog-reti-logiche-vhdl/.codex-sim\xsim.jou
+#-----------------------------------------------------------
+source xsim.dir/project_tb_sim/xsim_script.tcl
+# xsim {project_tb_sim} -autoloadwcfg -runall
+Vivado Simulator 2016.1
+Time resolution is 1 ps
+run -all
+Note: Test step 0 OK.
+Time: 340 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Note: Test step 1 OK.
+Time: 460 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Note: Test step 2 OK.
+Time: 600 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Note: Test step 3 OK.
+Time: 760 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Note: Test step 4 OK.
+Time: 960 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Note: Test step 5 OK.
+Time: 1220 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Note: Test step 6 OK.
+Time: 1480 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Note: Test step 7 OK.
+Time: 1760 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Note: Test step 8 OK.
+Time: 2040 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+Failure: Simulation Ended! TEST PASSATO (EXAMPLE)
+Time: 2040 ns  Iteration: 0  Process: /project_tb/create_scenario  File: C:/Users/Nico/Downloads/tb2526.vhd
+$finish called at time : 2040 ns
+exit
+INFO: [Common 17-206] Exiting xsim at Mon Apr 13 16:11:13 2026...

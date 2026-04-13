@@ -35,6 +35,7 @@ architecture Behavioral of project_reti_logiche is
         REMOVE_FIRST_LOOP,
         INSERT_TASK,
         INSERT_TASK_GET,
+        INSERT_WRITE_TAIL,
         UPDATE_RAM,
         CLEAR_RAM,
         WAIT_MEM,
@@ -50,6 +51,7 @@ architecture Behavioral of project_reti_logiche is
     signal idx_reg: unsigned(7 downto 0);
     signal n_task_id_next       : std_logic_vector(5 downto 0);
     signal n_task_priority_next : std_logic_vector(1 downto 0);
+    signal insert_shift_reg     : std_logic;
 
 
     begin
@@ -66,6 +68,7 @@ architecture Behavioral of project_reti_logiche is
                 n_op <= (others => '0');
                 idx_reg <= (others => '0');
                 popped_task_id <= (others => '0');
+                insert_shift_reg <= '0';
             elsif rising_edge(i_clk) then
                 state_reg <= state_next;
 
@@ -82,10 +85,17 @@ architecture Behavioral of project_reti_logiche is
                     n_task_priority <= i_task_priority;
                     popped_task_id <= (others => '0');
                     idx_reg <= (others => '0');
+                    insert_shift_reg <= '0';
 
                 elsif state_reg = INSERT_TASK_GET then
                     n_task_id       <= n_task_id_next;
                     n_task_priority <= n_task_priority_next;
+                    if idx_reg < n_reg then
+                        idx_reg <= idx_reg + to_unsigned(1, idx_reg'length);
+                    end if;
+                    if (insert_shift_reg = '0') and (unsigned(i_mem_data(1 downto 0)) > unsigned(n_task_priority)) then
+                        insert_shift_reg <= '1';
+                    end if;
 
                 elsif state_reg=DECREMENT_PR and idx_reg<n_reg then
                     idx_reg <= idx_reg + to_unsigned(1, idx_reg'length);
@@ -99,16 +109,13 @@ architecture Behavioral of project_reti_logiche is
                 elsif state_reg=REMOVE_FIRST_LOOP and idx_reg<=n_reg then
                     idx_reg <= idx_reg + to_unsigned(1, idx_reg'length);
                 
-                elsif state_reg=INSERT_TASK and idx_reg<=n_reg then
-                    idx_reg <= idx_reg + to_unsigned(1, idx_reg'length);
-
                 end if;
             end if;
         end process;
 
         -- Gestione transizioni di stato
         
-        process(all)
+        process(state_reg, i_start, n_op, n_reg, idx_reg, i_mem_data, insert_shift_reg, n_task_id, n_task_priority, popped_task_id)
         begin
 
             --DEFAULT
@@ -243,16 +250,21 @@ architecture Behavioral of project_reti_logiche is
                     end if;
 
                 when INSERT_TASK_GET =>
-                    o_mem_en <= '1';
-                    if (unsigned(i_mem_data(1 downto 0)) <= unsigned(n_task_priority)) and (idx_reg < n_reg) then
-                        state_next <= INSERT_TASK;
-
-                    elsif(unsigned(i_mem_data(1 downto 0)) > unsigned(n_task_priority)) then
+                    if insert_shift_reg = '1' or unsigned(i_mem_data(1 downto 0)) > unsigned(n_task_priority) then
+                        o_mem_en <= '1';
                         o_mem_we <= '1';
                         o_mem_addr <= std_logic_vector(resize(idx_reg, 16));
                         o_mem_data <= n_task_id & n_task_priority;
                         n_task_id_next       <= i_mem_data(7 downto 2);
                         n_task_priority_next <= i_mem_data(1 downto 0);
+
+                        if idx_reg = n_reg then
+                            state_next <= INSERT_WRITE_TAIL;
+                        else
+                            state_next <= INSERT_TASK;
+                        end if;
+
+                    elsif (unsigned(i_mem_data(1 downto 0)) <= unsigned(n_task_priority)) and (idx_reg < n_reg) then
                         state_next <= INSERT_TASK;
                         
                     elsif(idx_reg = n_reg) then
@@ -262,6 +274,13 @@ architecture Behavioral of project_reti_logiche is
                         o_mem_data <= n_task_id & n_task_priority;
                         state_next <= UPDATE_RAM;
                     end if;
+
+                when INSERT_WRITE_TAIL =>
+                    o_mem_en <= '1';
+                    o_mem_we <= '1';
+                    o_mem_addr <= std_logic_vector(resize(idx_reg + to_unsigned(1, idx_reg'length), 16));
+                    o_mem_data <= n_task_id & n_task_priority;
+                    state_next <= UPDATE_RAM;
                 
                 when UPDATE_RAM =>
                     o_mem_en <= '1';

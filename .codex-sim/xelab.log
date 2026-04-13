@@ -1,0 +1,17 @@
+Vivado Simulator 2016.1
+Copyright 1986-1999, 2001-2016 Xilinx, Inc. All Rights Reserved.
+Running: C:/Xilinx/Vivado/2016.1/bin/unwrapped/win64.o/xelab.exe -debug typical project_tb -s project_tb_sim 
+Multi-threading is on. Using 6 slave threads.
+Starting static elaboration
+WARNING: [VRFC 10-1303] range is empty (null range) [/proj/xhdhdstaff2/tapodyu/XsimWork/data/vhdl/src/ieee_2008/numeric_std-body.vhdl:3177]
+Completed static elaboration
+Starting simulation data flow analysis
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling package std.standard
+Compiling package std.textio
+Compiling package ieee.std_logic_1164
+Compiling package ieee.numeric_std
+Compiling architecture behavioral of entity work.project_reti_logiche [project_reti_logiche_default]
+Compiling architecture project_tb_arch of entity work.project_tb
+Built simulation snapshot project_tb_sim
