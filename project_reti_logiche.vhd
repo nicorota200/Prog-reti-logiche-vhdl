@@ -115,7 +115,7 @@ architecture Behavioral of project_reti_logiche is
 
         -- Gestione transizioni di stato
         
-        process(all)
+        process(state_reg, i_start, i_task_id, i_task_priority, i_op, i_mem_data, n_reg, n_task_id, n_task_priority, idx_reg, popped_task_id, insert_shift_reg)
         begin
 
             --DEFAULT
