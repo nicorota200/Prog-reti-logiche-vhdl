@@ -250,7 +250,7 @@ architecture Behavioral of project_reti_logiche is
                     end if;
 
                 when INSERT_TASK_GET =>
-                    if insert_shift_reg = '1' then
+                    if insert_shift_reg = '1' or (unsigned(i_mem_data(1 downto 0)) > unsigned(n_task_priority)) then
                         o_mem_en <= '1';
                         o_mem_we <= '1';
                         o_mem_addr <= std_logic_vector(resize(idx_reg, 16));
@@ -266,20 +266,6 @@ architecture Behavioral of project_reti_logiche is
 
                     elsif (unsigned(i_mem_data(1 downto 0)) <= unsigned(n_task_priority)) and (idx_reg < n_reg) then
                         state_next <= INSERT_TASK;
-
-                    elsif(unsigned(i_mem_data(1 downto 0)) > unsigned(n_task_priority)) then
-                        o_mem_en <= '1';
-                        o_mem_we <= '1';
-                        o_mem_addr <= std_logic_vector(resize(idx_reg, 16));
-                        o_mem_data <= n_task_id & n_task_priority;
-                        n_task_id_next       <= i_mem_data(7 downto 2);
-                        n_task_priority_next <= i_mem_data(1 downto 0);
-
-                        if idx_reg = n_reg then
-                            state_next <= INSERT_WRITE_TAIL;
-                        else
-                            state_next <= INSERT_TASK;
-                        end if;
                         
                     elsif(idx_reg = n_reg) then
                         o_mem_en <= '1';
