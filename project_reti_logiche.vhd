@@ -39,6 +39,7 @@ architecture Behavioral of project_reti_logiche is
         UPDATE_RAM,
         CLEAR_RAM,
         WAIT_MEM,
+        WAIT_DONE,
         WAIT_START_LOW
     );    
 
@@ -52,11 +53,16 @@ architecture Behavioral of project_reti_logiche is
     signal n_task_id_next       : std_logic_vector(5 downto 0);
     signal n_task_priority_next : std_logic_vector(1 downto 0);
     signal insert_shift_reg     : std_logic;
+    signal done_reg             : std_logic;
+    signal task_id_reg          : std_logic_vector(5 downto 0);
 
 
     begin
 
         -- Gestione reset asincrono
+
+        o_done <= done_reg;
+        o_task_id <= task_id_reg;
 
         process(i_clk, i_rst)
         begin
@@ -69,6 +75,8 @@ architecture Behavioral of project_reti_logiche is
                 idx_reg <= (others => '0');
                 popped_task_id <= (others => '0');
                 insert_shift_reg <= '0';
+                done_reg <= '1';
+                task_id_reg <= (others => '0');
             elsif rising_edge(i_clk) then
                 state_reg <= state_next;
 
@@ -110,18 +118,30 @@ architecture Behavioral of project_reti_logiche is
                     idx_reg <= idx_reg + to_unsigned(1, idx_reg'length);
                 
                 end if;
+
+                if state_reg = WAIT_DONE then
+                    done_reg <= '1';
+                    if n_op = "01" then
+                        task_id_reg <= popped_task_id;
+                    else
+                        task_id_reg <= (others => '0');
+                    end if;
+                elsif state_reg = WAIT_START_LOW and i_start = '0' then
+                    done_reg <= '0';
+                    task_id_reg <= (others => '0');
+                elsif state_reg = IDLE and done_reg = '1' then
+                    done_reg <= '0';
+                    task_id_reg <= (others => '0');
+                end if;
             end if;
         end process;
 
         -- Gestione transizioni di stato
         
-        process(state_reg, i_start, n_op, n_reg, idx_reg, i_mem_data, insert_shift_reg, n_task_id, n_task_priority, popped_task_id)
+        process(state_reg, i_start, i_task_id, i_task_priority, i_op, i_mem_data, n_reg, n_task_id, n_task_priority, idx_reg, popped_task_id, insert_shift_reg, done_reg, task_id_reg)
         begin
 
             --DEFAULT
-
-            o_done <= '0';
-            o_task_id <= (others => '0');
 
             o_mem_en <= '0';
             o_mem_we <= '0';
@@ -137,12 +157,11 @@ architecture Behavioral of project_reti_logiche is
 
             case(state_reg) is
                 when RESET_MEM =>
-                    o_done <= '1';
                     o_mem_we <= '1';
                     o_mem_en <= '1';
                     o_mem_addr <= (others => '0');
                     o_mem_data <= (others => '0');
-                    state_next <= WAIT_START_LOW;
+                    state_next <= IDLE;
                 
                 when IDLE =>
                     if(i_start = '1') then
@@ -176,7 +195,7 @@ architecture Behavioral of project_reti_logiche is
                     
                 when DECREMENT_PR =>
                     if (n_reg = to_unsigned(0, n_reg'length)) or (idx_reg >= n_reg) then
-                        state_next <= WAIT_START_LOW;
+                        state_next <= WAIT_DONE;
                     else
                         state_next <= DECREMENT_PR_REQ;
                     end if;
@@ -202,9 +221,7 @@ architecture Behavioral of project_reti_logiche is
 
                 when REMOVE_FIRST =>
                     if(n_reg = to_unsigned(0, n_reg'length)) then
-                        o_done <= '1';  --Fattibile in uno stato solo uguale per tutti
-                        o_task_id <= (others => '0');
-                        state_next <= WAIT_START_LOW;
+                        state_next <= WAIT_DONE;
                     else
                         o_mem_en <= '1';
                         o_mem_addr <= "0000000000000001";
@@ -250,7 +267,7 @@ architecture Behavioral of project_reti_logiche is
                     end if;
 
                 when INSERT_TASK_GET =>
-                    if insert_shift_reg = '1' or unsigned(i_mem_data(1 downto 0)) > unsigned(n_task_priority) then
+                    if insert_shift_reg = '1' or (unsigned(i_mem_data(1 downto 0)) > unsigned(n_task_priority)) then
                         o_mem_en <= '1';
                         o_mem_we <= '1';
                         o_mem_addr <= std_logic_vector(resize(idx_reg, 16));
@@ -299,15 +316,14 @@ architecture Behavioral of project_reti_logiche is
                 when WAIT_MEM =>
                     o_mem_en <= '0';
                     o_mem_we <= '0';
+                    state_next <= WAIT_DONE;
+
+                when WAIT_DONE =>
+                    o_mem_en <= '0';
+                    o_mem_we <= '0';
                     state_next <= WAIT_START_LOW;
 
                 when WAIT_START_LOW =>
-                    o_done <= '1';
-                    if n_op = "01" then
-                        o_task_id <= popped_task_id;
-                    else
-                        o_task_id <= (others => '0');
-                    end if;
                     if i_start = '0' then
                         state_next <= IDLE;
                     end if;
