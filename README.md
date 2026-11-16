@@ -1,43 +1,40 @@
 # Prova finale di Reti Logiche
 
-**Politecnico di Milano · A.A. 2025/2026 · Valutazione 30 e lode**
+**Nicola Rota e Ives Mathis Tagako**
 
-Abbiamo progettato in VHDL un modulo hardware che gestisce una coda di task ordinata per priorità in una RAM sincrona esterna. Il modulo `project_reti_logiche` è controllato da una macchina a 18 stati e usa il protocollo `START/DONE`.
+Politecnico di Milano, A.A. 2025/2026 · 30 e lode
 
-**Autori:** Nicola Rota e Ives Mathis Tagako.
+Abbiamo progettato in VHDL un modulo che gestisce **fino a 63 task** in una RAM sincrona esterna. La coda è ordinata dalla priorità più alta (0) alla più bassa (3). A parità di priorità, l'inserimento preserva l'ordine di arrivo.
 
-## Materiali
+[Sorgente VHDL finale](src/project_reti_logiche.vhd) · [Relazione di progetto](docs/relazione.pdf) · [Specifica ufficiale](docs/specifica.pdf)
 
-- [Sorgente VHDL finale](src/project_reti_logiche.vhd), identico al file di consegna `10906471_10986748.vhd`
-- [Relazione di progetto](docs/relazione.pdf) con schema funzionale, diagramma della FSM, sintesi e simulazioni
-- [Specifica ufficiale](docs/specifica.pdf), revisione del 24 febbraio 2026
-- [Testbench e copertura dei test](tests/README.md)
+## Architettura
 
-## Funzionamento
+La RAM memorizza il numero di task all'indirizzo 0 e i task negli indirizzi successivi. Ogni task occupa un byte, con **6 bit per l'ID** e **2 bit per la priorità**.
 
-La RAM conserva il numero di task all'indirizzo 0 e fino a 63 task agli indirizzi da 1 a `N`. Ogni task occupa un byte con 6 bit per l'ID e 2 per la priorità. La priorità 0 è la più alta.
+Il modulo `project_reti_logiche` usa una **macchina a stati finiti con 18 stati** per sequenziare gli accessi alla RAM. Un processo sequenziale aggiorna lo stato e i registri, mentre un processo combinatorio determina le transizioni e i comandi verso la memoria. Durante l'inserimento, un registro temporaneo conserva il task spostato fino alla scrittura successiva.
 
 | `OP` | Operazione | Comportamento |
 | --- | --- | --- |
-| `00` | Aging | Incrementa il valore numerico delle priorità fino a 3, preservando l'ordine dei task. |
-| `01` | Estrazione | Rimuove il primo task e ne restituisce l'ID. Se la coda è vuota restituisce 0. |
-| `10` | Inserimento | Inserisce il nuovo task dopo quelli di pari priorità. |
-| `11` | Svuotamento | Scrive zero nel contatore in RAM, rendendo vuota la coda. |
+| `00` | Aging | Incrementa il valore numerico delle priorità fino a 3, senza riordinare la coda. |
+| `01` | Estrazione | Rimuove il primo task e restituisce il suo ID. A coda vuota restituisce 0. |
+| `10` | Inserimento | Colloca il nuovo task dopo tutti quelli con la stessa priorità. |
+| `11` | Svuotamento | Azzera il contatore della coda in RAM. |
 
-Il reset è asincrono e mantiene `DONE` alto durante l'inizializzazione della RAM. Per avviare un'operazione, la logica esterna alza `START` quando `DONE` è basso, lo mantiene alto fino al completamento e poi lo riabbassa.
+Nel protocollo **`START/DONE`**, la logica esterna avvia una richiesta alzando `START` mentre `DONE` è basso. Il modulo alza `DONE` a operazione conclusa e aspetta che `START` torni basso prima di accettare un'altra richiesta. Dopo il reset asincrono, mantiene `DONE` alto fino all'azzeramento del contatore in RAM.
 
-## Simulazione con GHDL
+## Simulazione
 
-Con GHDL e Python 3 disponibili nel terminale, eseguire dalla radice del repository:
+Abbiamo verificato le quattro operazioni, il reset durante l'esecuzione, il protocollo `START/DONE` e il comportamento a piena capacità. La suite comprende il testbench di riferimento e nove test aggiuntivi. [Copertura dei test](tests/README.md)
+
+Per eseguire la suite dalla radice del repository servono GHDL e Python 3.
 
 ```sh
 python tests/run.py
 ```
 
-Il comando esegue il testbench di riferimento e i nove testbench aggiuntivi. La suite verifica le quattro operazioni, il reset durante l'esecuzione, il protocollo `START/DONE` e il comportamento fino a 63 task.
+## Sintesi
 
-## Sintesi con Vivado
+Abbiamo sintetizzato il modulo con Vivado 2016.1 per il dispositivo `xc7k70tfbg676-1`, con un periodo di clock di **20 ns**. Il progetto occupa **162 LUT e 45 registri**. Il report di timing riporta un margine minimo di setup (**WNS**) di **+16,549 ns**.
 
-Il top level di sintesi è `project_reti_logiche`. Per la configurazione descritta nella relazione, usare il dispositivo `xc7k70tfbg676-1`, il [sorgente VHDL](src/project_reti_logiche.vhd) e il [vincolo di clock a 20 ns](vivado/clock.xdc). I testbench forniscono il modello della RAM esterna per la simulazione.
-
-La relazione riporta per Vivado 2016.1 un utilizzo di **162 LUT** e **45 registri**, con un **WNS di +16,549 ns** rispetto al periodo di 20 ns. I risultati sono documentati nella sezione 3.1 della relazione e nei report originali di [utilizzo delle risorse](vivado/reports/utilization.txt) e [timing](vivado/reports/timing.rpx) di Vivado.
+[Vincolo di clock](vivado/clock.xdc) · [Report di utilizzo](vivado/reports/utilization.txt) · [Report di timing](vivado/reports/timing.rpx)
