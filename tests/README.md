@@ -1,4 +1,10 @@
-# Stato copertura attuale
+# Testbench
+
+Eseguire `python tests/run.py` dalla radice del repository, con GHDL e Python 3 disponibili nel terminale. Lo script usa una directory temporanea e riconosce il messaggio finale di successo nelle asserzioni dei testbench originali. GHDL accetta la variabile condivisa usata da `tb_utils_pkg.vhd` per numerare le operazioni con l'opzione `-frelaxed-rules`.
+
+## Copertura
+
+Il [testbench di riferimento](tb_reference.vhd) esegue una sequenza di inserimenti, estrazioni, aging e svuotamento. La tabella dei nove test aggiuntivi è nella sezione 3.2 della [relazione](../docs/relazione.pdf).
 
 ## Reset e inizializzazione
 - [x] Reset iniziale con verifica che la lista venga portata a vuota (`RAM(0)=0`)

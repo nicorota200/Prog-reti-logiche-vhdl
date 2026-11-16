@@ -1,0 +1,25 @@
+# GHDL e tracce di simulazione
+work-obj*.cf
+*.ghw
+*.vcd
+
+# Vivado e XSim
+/.codex-sim/
+.Xil/
+xsim.dir/
+*.cache/
+*.gen/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.wdb
+*.jou
+vivado*.log
+xsim*.log
+xvhdl*.log
+xelab*.log
+webtalk*.log
+
+# Python
+__pycache__/
